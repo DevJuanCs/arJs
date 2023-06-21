@@ -1,57 +1,83 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js"></script>
-    <script src="https://rawgit.com/leapmotion/leapjs/0.6.4/leap-0.6.4.min.js"></script>
-    <script>
-      AFRAME.registerComponent("hand-tracking", {
-        init: function () {
-          const el = this.el;
-          const scene = document.querySelector("a-scene");
-          const circle = document.querySelector("#circle");
-
-          Leap.loop(function (frame) {
-            if (frame.hands.length > 0) {
-              const handPosition = frame.hands[0].stabilizedPalmPosition;
-              const [x, y, z] = handPosition;
-
-              circle.setAttribute("position", `${x / 100} ${-y / 100} ${-z / 100}`);
-            }
-          });
-        },
-      });
-
-      window.addEventListener("load", function () {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices
-            .getUserMedia({ video: true })
-            .then(function (stream) {
-              const video = document.querySelector("video");
-              video.srcObject = stream;
-              video.play();
-            })
-            .catch(function (error) {
-              console.log("Error al acceder a la cámara: ", error);
-            });
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            background-color: #000;
         }
-      });
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script type="module">
+        // Import three
+        import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+        // Import the default VRButton
+        import { VRButton } from 'https://unpkg.com/three/examples/jsm/webxr/VRButton.js';
+
+        // Make a new scene
+        let scene = new THREE.Scene();
+        // Set background color of the scene to gray
+        scene.background = new THREE.Color(0x505050);
+
+        // Make a camera. note that far is set to 100, which is better for realworld sized environments
+        let camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.6, 3);
+        scene.add(camera);
+
+        // Add some lights
+        var light = new THREE.DirectionalLight(0xffffff,0.5);
+        light.position.set(1, 1, 1).normalize();
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff,0.5))
+
+        // Make a red cube
+        let cube = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(1,1,1),
+            new THREE.MeshLambertMaterial({color:'red'})
+        );
+        cube.position.set(0, 1.5, -10);
+        scene.add(cube);
+
+        // Make a renderer that fills the screen
+        let renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // Turn on VR support
+        renderer.xr.enabled = true;
+        // Set animation loop
+        renderer.setAnimationLoop(render);
+        // Add canvas to the page
+        document.body.appendChild(renderer.domElement);
+
+        // Add a button to enter/exit vr to the page
+        document.body.appendChild(VRButton.createButton(renderer));
+
+        // For AR instead, import ARButton at the top
+        //    import { ARButton } from 'https://unpkg.com/three/examples/jsm/webxr/ARButton.js';
+        // then create the button
+        //  document.body.appendChild(ARButton.createButton(renderer));
+
+        // Handle browser resize
+        window.addEventListener('resize', onWindowResize, false);
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function render(time) {
+            // Rotate the cube
+            cube.rotation.y = time / 1000;
+            // Draw everything
+            renderer.render(scene, camera);
+        }
     </script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-    >
-      <a-entity
-        id="circle"
-        geometry="primitive: circle; radius: 0.1;"
-        material="color: red;"
-        hand-tracking
-      ></a-entity>
-      <a-entity camera></a-entity>
-      <video id="video" style="display: none;"></video>
-    </a-scene>
-  </body>
+</body>
 </html>
